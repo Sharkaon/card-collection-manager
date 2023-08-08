@@ -6,18 +6,12 @@ generator client {
 }
 
 datasource db {
-    provider = "sqlite"
+    provider = "mysql"
     // NOTE: When using postgresql, mysql or sqlserver, uncomment the @db.Text annotations in model Account below
     // Further reading:
     // https://next-auth.js.org/adapters/prisma#create-the-prisma-schema
     // https://www.prisma.io/docs/reference/api-reference/prisma-schema-reference#string
     url      = env("DATABASE_URL")
-}
-
-model Example {
-    id        String   @id @default(cuid())
-    createdAt DateTime @default(now())
-    updatedAt DateTime @updatedAt
 }
 
 // Necessary for Next auth
@@ -27,12 +21,12 @@ model Account {
     type              String
     provider          String
     providerAccountId String
-    refresh_token     String? // @db.Text
-    access_token      String? // @db.Text
+    refresh_token     String? @db.Text
+    access_token      String? @db.Text
     expires_at        Int?
     token_type        String?
     scope             String?
-    id_token          String? // @db.Text
+    id_token          String? @db.Text
     session_state     String?
     user              User    @relation(fields: [userId], references: [id], onDelete: Cascade)
 
@@ -55,6 +49,7 @@ model User {
     image         String?
     accounts      Account[]
     sessions      Session[]
+    groups        GroupToUser[]
 }
 
 model VerificationToken {
@@ -63,4 +58,41 @@ model VerificationToken {
     expires    DateTime
 
     @@unique([identifier, token])
+}
+
+model Group {
+    id          String  @id @default(cuid())
+    name        String
+    boosters    BoosterPack[]
+    users       GroupToUser[]
+}
+
+model GroupToUser {
+    userId      String
+    user        User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+    groupId     String
+    group       Group   @relation(fields: [groupId], references: [id], onDelete: Cascade)
+    isOwner     Boolean @default(false)
+    isModerator Boolean @default(false)
+
+    @@id([userId, groupId])
+}
+
+model BoosterPack {
+    id          String   @id @default(cuid())
+    name        String
+    price       Float
+    cardPerPack Int
+    groupId     String
+    group       Group  @relation(fields: [groupId], references: [id], onDelete: Cascade)
+    cards       Card[]
+}
+
+model Card {
+    id          String   @id @default(cuid())
+    name        String
+    rarity      String
+    price       Float
+    boosterId   String
+    booster     BoosterPack  @relation(fields: [boosterId], references: [id], onDelete: Cascade)
 }
